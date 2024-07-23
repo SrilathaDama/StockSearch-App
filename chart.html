@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="https://code.highcharts.com/stock/highstock.js"></script>
+    <script src="https://code.highcharts.com/stock/modules/data.js"></script>
+    <script src="https://code.highcharts.com/stock/modules/drag-panes.js"></script>
+    <script src="https://code.highcharts.com/stock/modules/exporting.js"></script>
+    <script src="https://code.highcharts.com/stock/indicators/indicators.js"></script>
+    <script src="https://code.highcharts.com/stock/indicators/volume-by-price.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+    <script>
+        console.log("Inside")
+        // Ensures the script runs only after the entire DOM is loaded
+        document.addEventListener('DOMContentLoaded', function () {
+            try {
+                loadChartWithData('AAPL');
+            } catch (error) {
+                console.error('Initialization error:', error);
+            }
+        });
+        
+        function loadChartWithData(tickerSymbol) {
+            console.log("Loading data for:", tickerSymbol);
+            const ohlc = [],
+                volume = [],
+                groupingUnits = [
+                    [
+                        "day",
+                        [1]
+                    ],
+                    ["month", [1, 2, 3, 4, 6]]
+                ];
+
+            fetch("https://clean-yew-418817.uc.r.appspot.com/chart_data?symbol=AAPL")
+                .then(response => response.json())
+                .then(data => {
+                    if (!data.data) {
+                                alert('No data received');
+                                return;
+                            }
+                    data.data.chart.forEach(rec => {
+                        ohlc.push([rec.t, rec.o, rec.h, rec.l, rec.c]);
+                        volume.push([rec.t, rec.v]);
+                    });
+
+                    Highcharts.stockChart('chart-container', {
+                        rangeSelector: {
+                            selected: 2
+                        },
+                        title: {
+                            text: `${tickerSymbol} Historical`
+                        },
+                        subtitle: {
+                            text: 'With SMA and Volume by Price technical indicators'
+                        },
+                        yAxis: [{
+                            startOnTick: false,
+                            endOnTick: false,
+                            labels: {
+                                align: 'right',
+                                x: -3
+                            },
+                            title: {
+                                text: 'OHLC'
+                            },
+                            height: '60%',
+                            lineWidth: 2,
+                            resize: {
+                                enabled: true
+                            }
+                        }, {
+                            labels: {
+                                align: 'right',
+                                x: -3
+                            },
+                            title: {
+                                text: 'Volume'
+                            },
+                            top: '65%',
+                            height: '35%',
+                            offset: 0,
+                            lineWidth: 2
+                        }],
+                        tooltip: {
+                            split: true
+                        },
+                        plotOptions: {
+                            series: {
+                                dataGrouping: {
+                                    units: groupingUnits
+                                }
+                            }
+                        },
+                        series: [{
+                            type: 'candlestick',
+                            name: tickerSymbol,
+                            id: 'aapl-ohlc',
+                            zIndex: 2,
+                            data: ohlc
+                        }, {
+                            type: 'column',
+                            name: 'Volume',
+                            id: 'volume',
+                            data: volume,
+                            yAxis: 1
+                        }, {
+                            type: 'vbp',
+                            linkedTo: 'aapl-ohlc',
+                            params: {
+                                volumeSeriesID: 'volume'
+                            },
+                            dataLabels: {
+                                enabled: false
+                            },
+                            zoneLines: {
+                                enabled: false
+                            }
+                        }, {
+                            type: 'sma',
+                            linkedTo: 'aapl-ohlc',
+                            zIndex: 1,
+                            marker: {
+                                enabled: false
+                            }
+                        }]
+                    });
+                })
+                .catch(error => {
+                    console.error('Error fetching data:', error);
+                });
+        }
+    </script>
+</body>
+</html>
